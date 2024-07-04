@@ -1,5 +1,16 @@
 // widget.js
 (function() {
+    // Function to load an external script
+    function loadScript(src, callback) {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = callback;
+        script.onerror = function() {
+            console.error('Failed to load script: ${src}');
+        };
+        document.head.appendChild(script);
+    }
+
     // Create a button element
     const button = document.createElement('button');
     button.innerText = 'Take Screenshot';
@@ -18,20 +29,28 @@
     document.body.appendChild(button);
 
     // Function to take a screenshot
-    async function takeScreenshot() {
-        const canvas = await html2canvas(document.body);
-        const dataUrl = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = 'screenshot.png';
-        link.click();
+    function takeScreenshot() {
+        if (typeof html2canvas !== 'function') {
+            console.error('html2canvas library is not loaded.');
+            return;
+        }
+        
+        html2canvas(document.body).then(function(canvas) {
+            const dataUrl = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = 'screenshot.png';
+            link.click();
+        }).catch(function(error) {
+            console.error('Error taking screenshot:', error);
+        });
     }
 
     // Add click event to the button
     button.addEventListener('click', takeScreenshot);
 
-    // Load html2canvas library
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js';
-    document.head.appendChild(script);
+    // Load html2canvas library and initialize the widget
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/0.4.1/html2canvas.min.js', function() {
+        console.log('html2canvas library loaded successfully.');
+    });
 })();
