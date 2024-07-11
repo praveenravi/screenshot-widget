@@ -1,34 +1,5 @@
 // widget.js
 (function() {
-    // EmailJS configuration
-    const emailjsUserID = 'YOUR_EMAILJS_USER_ID'; // Replace with your EmailJS user ID
-    const emailjsServiceID = 'YOUR_EMAILJS_SERVICE_ID'; // Replace with your EmailJS service ID
-    const emailjsTemplateID = 'YOUR_EMAILJS_TEMPLATE_ID'; // Replace with your EmailJS template ID
-    const predefinedName = 'QA Tester'; // Replace with the predefined name
-    const predefinedEmail = 'qa@example.com'; // Replace with the predefined email
-
-    // Load EmailJS SDK
-    function loadEmailJSScript(callback) {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.emailjs.com/dist/email.min.js';
-        script.onload = callback;
-        script.onerror = function() {
-            console.error('Failed to load EmailJS SDK');
-        };
-        document.head.appendChild(script);
-    }
-
-    // Function to load an external script
-    function loadScript(src, callback) {
-        const script = document.createElement('script');
-        script.src = src;
-        script.onload = callback;
-        script.onerror = function() {
-            console.error(`Failed to load script: ${src}`);
-        };
-        document.head.appendChild(script);
-    }
-
     // Create a sliding panel
     const panel = document.createElement('div');
     panel.style.position = 'fixed';
@@ -154,8 +125,8 @@
             });
     }
 
-    // Function to send the email with the screenshot and bug details
-    function sendEmail(event) {
+    // Function to send bug report to the backend
+    function sendBugReport(event) {
         event.preventDefault(); // Prevent form submission
 
         const details = document.getElementById('details').value;
@@ -168,21 +139,32 @@
             return;
         }
 
-        emailjs.send(emailjsServiceID, emailjsTemplateID, {
-            name: predefinedName,
-            email: predefinedEmail,
-            details: details,
-            severity: severity,
-            priority: priority,
-            screenshot: screenshot
-        }, emailjsUserID)
-        .then(function(response) {
-            alert('Bug report sent successfully!');
-            form.reset();
-            imgPreview.style.display = 'none'; // Hide the image preview
-            togglePanel(); // Toggle the panel back
-        }, function(error) {
-            console.error('Failed to send email:', error);
+        fetch('http://localhost:5000/report_bug', {  // Ensure the URL matches your Flask server's URL
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                title: 'Bug Report',
+                description: details,
+                severity: severity,
+                priority: priority,
+                screenshot: screenshot
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Bug report sent successfully!');
+                form.reset();
+                imgPreview.style.display = 'none'; // Hide the image preview
+                togglePanel(); // Toggle the panel back
+            } else {
+                alert(`Failed to send bug report: ${data.message}`);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
             alert('Failed to send bug report. Please try again.');
         });
     }
@@ -190,15 +172,18 @@
     // Add click events to the buttons
     toggleButton.addEventListener('click', togglePanel);
     screenshotButton.addEventListener('click', takeScreenshot);
-    form.addEventListener('submit', sendEmail);
+    form.addEventListener('submit', sendBugReport);
 
-    // Load EmailJS SDK and html2canvas library
-    loadEmailJSScript(function() {
-        emailjs.init(emailjsUserID);
-        console.log('EmailJS SDK loaded successfully.');
+    // Load html2canvas library
+    const loadScript = (src, callback) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = callback;
+        script.onerror = () => console.error(`Failed to load script: ${src}`);
+        document.head.appendChild(script);
+    };
 
-        loadScript('http://html2canvas.hertzen.com/dist/html2canvas.js', function() {
-            console.log('html2canvas library loaded successfully.');
-        });
+    loadScript('http://html2canvas.hertzen.com/dist/html2canvas.js', () => {
+        console.log('html2canvas library loaded successfully.');
     });
 })();
